@@ -1,5 +1,6 @@
-from flask import render_template
+from flask import redirect, render_template
 from flask.views import MethodView
+from werkzeug.exceptions import Gone
 
 from .exceptions import ImproperlyConfigured
 
@@ -35,3 +36,25 @@ class TemplateView(TemplateResponseMixin, BaseView):
     def get(self, **kwargs):
         context = self.get_context_data(**kwargs)
         return self.render_to_response(context)
+
+
+class RedirectView(BaseView):
+    permanent = True
+    url = None
+
+    def get_redirect_url(self, **kwargs):
+        if self.url:
+            return self.url
+        else:
+            return None
+
+    def get(self, **kwargs):
+        url = self.get_redirect_url(**kwargs)
+
+        if url:
+            if self.permanent:
+                return redirect(url, code=301)
+            else:
+                return redirect(url)
+        else:
+            raise Gone
