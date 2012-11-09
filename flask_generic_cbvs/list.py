@@ -10,6 +10,7 @@ class MultipleObjectMixin(object):
     model = None
     context_object_name = None
     paginate_by = None
+    sort_by = None
 
     def get_query_object(self):
         if self.query_object is not None:
@@ -35,6 +36,22 @@ class MultipleObjectMixin(object):
 
         return (paginator, paginator.items, paginator.has_prev or paginator.has_next)
 
+    def get_sort_by(self):
+        return self.sort_by
+
+    def sort_query_object(self, query_object):
+        sort_by = self.get_sort_by()
+
+        if sort_by:
+            if sort_by[0] == "-":
+                query_object = query_object.order_by(
+                    getattr(query_object._entities[0].entity_zero.class_, sort_by[1:]).desc())
+            else:
+                query_object = query_object.order_by(
+                    getattr(query_object._entities[0].entity_zero.class_, sort_by))
+
+        return query_object
+
     def get_context_object_name(self, object_list):
         if self.context_object_name:
             return self.context_object_name
@@ -48,6 +65,9 @@ class MultipleObjectMixin(object):
         query_object = kwargs.pop("object_list")
         page_size = self.get_paginate_by()
         context_object_name = self.get_context_object_name(query_object)
+
+        if self.sort_by:
+            query_object = self.sort_query_object(query_object)
 
         if page_size:
             paginator, query_object, is_paginated = self.paginate_query_object(query_object, page_size)
