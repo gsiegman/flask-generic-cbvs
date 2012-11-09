@@ -1,3 +1,5 @@
+from flask import abort, request
+
 from .base import BaseView, TemplateResponseMixin
 from .exceptions import ImproperlyConfigured
 from .utils import camelcase_to_underscore
@@ -7,6 +9,7 @@ class MultipleObjectMixin(object):
     query_object = None
     model = None
     context_object_name = None
+    paginate_by = None
 
     def get_query_object(self):
         if self.query_object is not None:
@@ -17,6 +20,20 @@ class MultipleObjectMixin(object):
             raise ImproperlyConfigured("Either a model or query_object must be defined.")
 
         return query_object
+
+    def get_paginate_by(self):
+        return self.paginate_by
+
+    def paginate_query_object(self, query_object, page_size):
+        page = request.args.get("page") or 1
+        try:
+            page_number = int(page)
+        except ValueError:
+            abort(404)
+
+        paginator = query_object.paginate(page_number, page_size)
+
+        return (paginator, paginator.items, paginator.has_prev or paginator.has_next)
 
     def get_context_object_name(self, object_list):
         if self.context_object_name:
@@ -29,11 +46,23 @@ class MultipleObjectMixin(object):
 
     def get_context_data(self, **kwargs):
         query_object = kwargs.pop("object_list")
+        page_size = self.get_paginate_by()
         context_object_name = self.get_context_object_name(query_object)
 
-        context = {
-            "object_list": query_object
-        }
+        if page_size:
+            paginator, query_object, is_paginated = self.paginate_query_object(query_object, page_size)
+            context = {
+                "paginator": paginator,
+                "is_paginated": is_paginated,
+                "object_list": query_object
+            }
+        else:
+            context = {
+                "paginator": None,
+                "is_paginated": False,
+                "object_list": query_object
+            }
+
         context.update(kwargs)
         if context_object_name is not None:
             context[context_object_name] = query_object
