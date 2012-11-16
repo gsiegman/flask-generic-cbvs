@@ -40,7 +40,7 @@ class MultipleObjectMixin(object):
         return self.sort_by
 
     def sort_query_object(self, query_object):
-        sort_by = self.get_sort_by()
+        sort_by = request.args.get("sort_by", self.get_sort_by())
 
         if sort_by:
             if sort_by[0] == "-":
