@@ -41,14 +41,31 @@ class MultipleObjectMixin(object):
 
     def sort_query_object(self, query_object):
         sort_by = request.args.get("sort_by", self.get_sort_by())
+        query_object_entity = query_object._entities[0].entity_zero.class_
 
         if sort_by:
-            if sort_by[0] == "-":
-                query_object = query_object.order_by(
-                    getattr(query_object._entities[0].entity_zero.class_, sort_by[1:]).desc())
+            if "." in sort_by:
+                # parse the fields out
+                # needed for sorting on relationship fields
+                tokens = sort_by.rsplit(".", 1)
+
+                if sort_by[0] == "-":
+                    rel_class = getattr(query_object.first(), tokens[0][1:]).__class__
+                    query_object = query_object.join(getattr(
+                        query_object_entity, tokens[0][1:])).order_by(getattr(
+                            rel_class, tokens[1]).desc())
+                else:
+                    rel_class = getattr(query_object.first(), tokens[0]).__class__
+                    query_object = query_object.join(getattr(
+                        query_object_entity, tokens[0])).order_by(getattr(
+                            rel_class, tokens[1]))
             else:
-                query_object = query_object.order_by(
-                    getattr(query_object._entities[0].entity_zero.class_, sort_by))
+                if sort_by[0] == "-":
+                    query_object = query_object.order_by(
+                        getattr(query_object_entity, sort_by[1:]).desc())
+                else:
+                    query_object = query_object.order_by(
+                        getattr(query_object_entity, sort_by))
 
         return query_object
 
