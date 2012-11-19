@@ -37,10 +37,17 @@ class MultipleObjectMixin(object):
         return (paginator, paginator.items, paginator.has_prev or paginator.has_next)
 
     def get_sort_by(self):
-        return self.sort_by
+        if request.args.get("sort_by", ""):
+            sort_by = request.args["sort_by"]
+        elif self.sort_by:
+            sort_by = self.sort_by
+        else:
+            sort_by = None
+
+        return sort_by
 
     def sort_query_object(self, query_object):
-        sort_by = request.args.get("sort_by", self.get_sort_by())
+        sort_by = self.get_sort_by()
         query_object_entity = query_object._entities[0].entity_zero.class_
 
         if sort_by:
@@ -83,7 +90,7 @@ class MultipleObjectMixin(object):
         page_size = self.get_paginate_by()
         context_object_name = self.get_context_object_name(query_object)
 
-        if self.sort_by:
+        if self.get_sort_by():
             query_object = self.sort_query_object(query_object)
 
         if page_size:
@@ -99,6 +106,8 @@ class MultipleObjectMixin(object):
                 "is_paginated": False,
                 "object_list": query_object
             }
+
+        context["sort_by"] = self.get_sort_by()
 
         context.update(kwargs)
         if context_object_name is not None:
