@@ -57,12 +57,12 @@ class MultipleObjectMixin(object):
                 tokens = sort_by.rsplit(".", 1)
 
                 if sort_by[0] == "-":
-                    rel_class = getattr(query_object.first(), tokens[0][1:]).__class__
+                    rel_class = getattr(query_object_entity, tokens[0][1:]).property.argument()
                     query_object = query_object.join(getattr(
                         query_object_entity, tokens[0][1:])).order_by(getattr(
                             rel_class, tokens[1]).desc())
                 else:
-                    rel_class = getattr(query_object.first(), tokens[0]).__class__
+                    rel_class = getattr(query_object_entity, tokens[0]).property.argument()
                     query_object = query_object.join(getattr(
                         query_object_entity, tokens[0])).order_by(getattr(
                             rel_class, tokens[1]))
